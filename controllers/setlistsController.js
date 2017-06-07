@@ -1,7 +1,7 @@
 const request = require('superagent');
 const async = require('async');
 const redis = require('redis');
-const REDIS_PORT = process.env.REDIS_URL;
+const REDIS_URL = process.env.REDIS_URL;
 
 const client = redis.createClient(REDIS_URL);
 
