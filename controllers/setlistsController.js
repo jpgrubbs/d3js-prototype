@@ -1,9 +1,9 @@
 const request = require('superagent');
 const async = require('async');
 const redis = require('redis');
-const REDIS_PORT = process.env.REDIS_PORT;
+const REDIS_PORT = process.env.REDIS_URL;
 
-const client = redis.createClient(REDIS_PORT);
+const client = redis.createClient(REDIS_URL);
 
 exports.get_artist_setlists_cache = function(req,res,next){
   var artistId = req.query.id;
