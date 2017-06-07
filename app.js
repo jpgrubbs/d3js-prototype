@@ -30,6 +30,7 @@ app.use('/rest', rest);
 app.use('/statistics', statistics);
 app.use('/please-wait',express.static(__dirname + '/node_modules/please-wait/build'));
 app.use('/spinkit',express.static(__dirname + '/node_modules/spinkit/css'))
+app.use('/jquery',express.static(__dirname + '/node_modules/jquery/dist'))
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
