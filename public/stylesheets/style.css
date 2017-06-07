@@ -6,3 +6,10 @@ body {
 a {
   color: #00B7FF;
 }
+
+.sk-wave .sk-rect {
+  background-color: #FFF;
+  height: 100%;
+  width: 6px;
+  margin: 2px;
+}
