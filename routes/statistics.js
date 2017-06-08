@@ -1,9 +1,12 @@
 var express = require('express');
 var router = express.Router();
+var statistics_controller = require('../controllers/statisticsController');
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
+router.get('/', statistics_controller.get_statistics);
+
+router.get('/view',function(req,res){
+  res.render('stats');
+})
 
 module.exports = router;

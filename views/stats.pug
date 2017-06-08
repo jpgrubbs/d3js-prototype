@@ -1,0 +1,36 @@
+extends layout
+
+
+block content
+  h1 JSON
+  #data
+    
+  script.
+    
+    var loading_screen = pleaseWait({
+    logo: "/images/avett-bros-logo.png",
+      backgroundColor: '#f46d3b',
+      loadingHtml: '<p style="color:white">Rearranging plans...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
+    });
+    
+    $.ajax({ 
+      type: "GET",
+      dataType: "json",
+      url: "/statistics",
+      data: {song:"I Killed Sally's lover"},
+      error: function (jqXHR, textStatus, errorThrown) {
+      console.log(jqXHR);
+      console.log(textStatus);
+      console.log(errorThrown);
+      },
+      
+      success: function (data) {
+      console.log('Success');
+      $('#data').text(JSON.stringify(data));
+      loading_screen.finish();
+      },
+
+      complete: function () {
+      console.log('Finished all tasks');
+      }
+    });
