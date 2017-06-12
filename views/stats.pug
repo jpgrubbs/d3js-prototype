@@ -2,22 +2,89 @@ extends layout
 
 
 block content
-  h1 JSON
-  #data
+  style(type="text/css").
+    .chart rect {
+
+    }
+
+    .chart text {
+      fill: white;
+      font: 13px arial;
+      text-anchor: end;
+    }
+    
+    .yaxis text {
+      fill: black;
+      font: 13px arial;
+    }
+  h1(id="songName")
+  svg(class="chart")
+  script var song = !{JSON.stringify(song).replace(/<\//g, '<\\/')} 
+  //-  
+    script.
+      
+      var loading_screen = pleaseWait({
+      logo: "/images/avett-bros-logo.png",
+        backgroundColor: '#f46d3b',
+        loadingHtml: '<p style="color:white">Rearranging plans...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
+      });
+      
+      $.ajax({ 
+        type: "GET",
+        dataType: "json",
+        url: "/statistics",
+        data: {song:"I Killed Sally's lover", fromYear: "2017"},
+        error: function (jqXHR, textStatus, errorThrown) {
+        console.log(jqXHR);
+        console.log(textStatus);
+        console.log(errorThrown);
+        },
+        
+        success: function (data) {
+        console.log('Success');
+        $('#data').text(JSON.stringify(data));
+        loading_screen.finish();
+        },
+
+        complete: function () {
+        console.log('Finished all tasks');
+        }
+      });
     
   script.
-    
+    // Setup svg using Bostock's margin convention
     var loading_screen = pleaseWait({
     logo: "/images/avett-bros-logo.png",
       backgroundColor: '#f46d3b',
       loadingHtml: '<p style="color:white">Rearranging plans...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
     });
+
+    var margin = {top: 20, right: 30, bottom: 30, left: 100},
+        width = 600 - margin.left - margin.right,
+        height = 200 - margin.top - margin.bottom;
+    
+    var y = d3.scaleBand()
+        .rangeRound([0, height])
+        .paddingInner(0.1);
+
+    var x = d3.scaleLinear()
+        .range([0, width]);
+        
+    var yAxis = d3.axisLeft(y);
+
+    var chart = d3.select(".chart")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var colorScale = d3.scaleOrdinal(d3.schemeCategory20c);
     
     $.ajax({ 
       type: "GET",
       dataType: "json",
       url: "/statistics",
-      data: {song:"I Killed Sally's lover"},
+      data: {song:song, fromYear: "2013"},
       error: function (jqXHR, textStatus, errorThrown) {
       console.log(jqXHR);
       console.log(textStatus);
@@ -26,11 +93,72 @@ block content
       
       success: function (data) {
       console.log('Success');
-      $('#data').text(JSON.stringify(data));
-      loading_screen.finish();
-      },
 
+      var venueData = data.venueData;
+      $("#songName").text(song);
+      
+      y.domain(venueData.map(function(d) { return capitalizeFirstLetter(d.venue); }));
+      x.domain([0, d3.max(venueData, function(d) { 
+        /*if(+d.percentage*2>100){
+          return 100;
+        } else {
+          return +d.percentage*2;
+        } */ return +d.percentage;})]);
+      
+      chart.append("g")
+        .attr("class", "yaxis")
+        .call(yAxis);
+      
+      var bar = chart.selectAll(".bar")
+        .data(venueData).enter().append("g");
+      
+      colorScale(-4);
+      colorScale(-3);
+      colorScale(-2);
+      colorScale(-1);
+      
+      
+      
+      console.log(y.bandwidth());
+      bar.append("rect")
+          .attr("y", function(d) { return y(capitalizeFirstLetter(d.venue)); })
+          .attr("fill", function(d, i) {return colorScale(i); })
+          .transition()
+          .delay(1000)
+          .duration(300)
+          .ease(d3.easeCubic)
+          .attr("class", "bar")
+          .attr("x", 0)
+          .attr("width", function(d) { return x(+d.percentage); })
+          .attr("height", y.bandwidth());
+
+      bar.append("text")
+          .transition()
+          .delay(1000)
+          .duration(300)
+          .ease(d3.easeCubic)
+          .attr("x", function(d) { 
+            console.log(x(+d.percentage));
+            if(x(+d.percentage) > 0){
+              return x(+d.percentage) - 3;
+            } else {
+              return 20;
+            }
+              })
+          .attr("y", function(d) { return y(capitalizeFirstLetter(d.venue)) +(y.bandwidth()/2);})
+          .attr("dy", ".35em")
+          .text(function(d) { return Math.round(+d.percentage) + "%"; });
+      },
+    
       complete: function () {
       console.log('Finished all tasks');
+      loading_screen.finish();
       }
     });
+    
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+      
+
+    

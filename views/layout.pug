@@ -5,7 +5,28 @@ html
     link(href='/spinkit/spinkit.css', rel='stylesheet')
     link(href='/please-wait/please-wait.css', rel='stylesheet')
     link(rel='stylesheet', href='/stylesheets/style.css')
+    style(type="text/css").
+      svg {
+        font: 10px sans-serif;
+        shape-rendering: crispEdges;
+      }
+
+      .axis path,
+      .axis line {
+        fill: none;
+        stroke: #000;
+      }
+
+      path.domain {
+        stroke: none;
+      }
+
+      .y .tick line {
+        stroke: #ddd;
+      }
+      
   body
     script(type='text/javascript' src='/jquery/jquery.min.js')
     script(type="text/javascript" src="/please-wait/please-wait.min.js")
+    script(src="https://d3js.org/d3.v4.min.js")
     block content
