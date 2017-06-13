@@ -15,12 +15,18 @@ exports.get_statistics = function(req,res){
       var songName = req.query.song;
       var fromYear = req.query.fromYear;
       var setlists = result.body.setlists;
+      var monthData = {};
       for(var i in setlists){
         var date = setlists[i]['@eventDate'];
-        var year = date.split("-")[2];
+        var dateParts = date.split("-");
+        var year = dateParts[2];
+        var monthYear = dateParts[1]+"-"+dateParts[2];
         if(parseInt(year,10)<parseInt(fromYear,10)) break;
         var venue = setlists[i].venue;
         var venueName = venue['@name'];
+        if(!monthData[monthYear]){
+          monthData[monthYear] = 0;
+        }
         addVenueTally(venueName,year);
         var sets = setlists[i].sets.set;
         if(!sets){continue;}
@@ -34,6 +40,7 @@ exports.get_statistics = function(req,res){
                 var song = songs[k];
                 var name = song['@name'];
                 if(name.toLowerCase() === songName.toLowerCase()){
+                  monthData[monthYear]++;
                   addSongTally(venueName,year);
                   occurrences++;
                 }
@@ -41,6 +48,7 @@ exports.get_statistics = function(req,res){
             } else {
               var name = songs['@name'];
               if(name.toLowerCase() === songName.toLowerCase()){
+                monthData[monthYear]++;
                 addSongTally(venueName,year);
                 occurrences++;
               }
@@ -53,6 +61,7 @@ exports.get_statistics = function(req,res){
               var song = songs[k];
               var name = song['@name'];
               if(name.toLowerCase() === songName.toLowerCase()){
+                monthData[monthYear]++;
                 addSongTally(venueName,year);
                 occurrences++;
               }
@@ -60,12 +69,14 @@ exports.get_statistics = function(req,res){
           } else {
             var name = songs['@name'];
             if(name.toLowerCase() === songName.toLowerCase()){
+              monthData[monthYear]++;
               addSongTally(venueName,year);
               occurrences++;
             }
           }
         }
       }
+      var monthDataArray = arrayifyMonthData(monthData);
       var returnObject = {
         song: songName,
         venueData: [
@@ -84,8 +95,10 @@ exports.get_statistics = function(req,res){
         {
           venue: "festival",
           percentage: (numFestival/totFestival)*100
-        }
-      ]};
+        }],
+        monthData:monthDataArray
+      };
+
       res.send(returnObject);
       console.log(totTheatre);
       console.log(numTheatre);
@@ -122,6 +135,19 @@ exports.get_statistics = function(req,res){
       else if(venue.includes("amphitheatre")||venue.includes("amphitheater")||venue.includes("park")||venue.includes("pavilion")){
         numAmphitheatre++;
       }
+    }
+
+    arrayifyMonthData = function(monthData){
+      var returnData= [];
+      for (var key in monthData) {
+        if (monthData.hasOwnProperty(key)) {
+          returnData.push({
+            month:key,
+            timesPlayed:monthData[key]
+          })
+        }
+      }
+      return returnData;
     }
 
 };

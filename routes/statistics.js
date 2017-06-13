@@ -6,7 +6,7 @@ var statistics_controller = require('../controllers/statisticsController');
 router.get('/', statistics_controller.get_statistics);
 
 router.get('/view',function(req,res){
-  res.render('stats',{song: req.query.song.replace(/([A-Z])/g, ' $1').trim()});
+  res.render('stats');
 })
 
 module.exports = router;

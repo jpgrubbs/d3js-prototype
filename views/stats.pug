@@ -3,11 +3,12 @@ extends layout
 
 block content
   style(type="text/css").
-    .chart rect {
+    .barchart rect {
 
     }
+    
 
-    .chart text {
+    .barchart text {
       fill: white;
       font: 13px arial;
       text-anchor: end;
@@ -17,23 +18,65 @@ block content
       fill: black;
       font: 13px arial;
     }
+    
+    path {
+    stroke: steelblue;
+    fill: none;
+    stroke-width: 3px;
+    shape-rendering: auto;
+    }
+    
+    label {
+    display:block;
+    position:relative;
+    margin-bottom:10px;
+    }
+    label > span {
+    position:relative;
+    left:0;
+    margin-right:4px;
+    }
+  
+  form
+    label
+      span Enter a song title:
+      input(type="text",name="songTitle", id="songTitle")
+    label
+      span From this year forward:
+      select(id="yearpicker")
+    input(type="submit",name="submit")
   h1(id="songName")
-  svg(class="chart")
-  script var song = !{JSON.stringify(song).replace(/<\//g, '<\\/')} 
-  //-  
-    script.
-      
-      var loading_screen = pleaseWait({
-      logo: "/images/avett-bros-logo.png",
-        backgroundColor: '#f46d3b',
-        loadingHtml: '<p style="color:white">Rearranging plans...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
-      });
-      
+  svg(class="barchart")
+  svg(class="linechart")
+  p All data provided by #[a(href="http://www.setlist.fm/") setlist.fm]
+  p You can find their statistics on The Avett Brothers #[a(href="http://www.setlist.fm/stats/the-avett-brothers-33d66809.html") here]
+  br
+  p Note: The probability by venue type is not completely accurate. A best guess is made of the venue type based solely 
+    |on the name. (For example: Arena looks for "arena", "coliseum", and "bowl" as keywords)
+  script.
+    for (i = new Date().getFullYear(); i > 2001; i--)
+    {
+      $('#yearpicker').append($('<option />').val(i).html(i));
+    }
+  
+  script.
+    
+              
+    $("form").submit(function(e){
+       e.preventDefault();
+       var loading_screen = pleaseWait({
+       logo: "/images/avett-bros-logo.png",
+         backgroundColor: '#f46d3b',
+         loadingHtml: '<p style="color:white">Rearranging plans and changing for you...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
+       });
+      $("svg").empty();
+      var song = $("#songTitle").val();
+      var selectedYear = $("#yearpicker").val();
       $.ajax({ 
         type: "GET",
         dataType: "json",
         url: "/statistics",
-        data: {song:"I Killed Sally's lover", fromYear: "2017"},
+        data: {song:song, fromYear: selectedYear},
         error: function (jqXHR, textStatus, errorThrown) {
         console.log(jqXHR);
         console.log(textStatus);
@@ -41,119 +84,181 @@ block content
         },
         
         success: function (data) {
+        // Setup svg using Bostock's margin convention
+        //Chart 1
+        var margin1 = {top: 40, right: 30, bottom: 30, left: 100},
+            width1 = 600 - margin1.left - margin1.right,
+            height1 = 200 - margin1.top - margin1.bottom;
+        
+        var y1 = d3.scaleBand()
+            .rangeRound([0, height1])
+            .paddingInner(0.1);
+    
+        var x1 = d3.scaleLinear()
+            .range([0, width1]);
+            
+        var y1Axis = d3.axisLeft(y1);
+    
+        var barChart = d3.select(".barchart")
+            .attr("width", width1 + margin1.left + margin1.right)
+            .attr("height", height1 + margin1.top + margin1.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin1.left + "," + margin1.top + ")");
+    
+        var colorScale = d3.scaleOrdinal(d3.schemeCategory20c);
+        
+        //Chart 2
+        var margin2 = {top: 40, right: 20, bottom: 30, left: 50},
+        width2 = 960 - margin2.left - margin2.right,
+        height2 = 250 - margin2.top - margin2.bottom;
+        
+        var parseTime = d3.timeParse("%m-%Y");
+        
+        var x2 = d3.scaleTime().range([0, width2]);
+        var y2 = d3.scaleLinear().range([height2, 0]);
+        
+        // define the line
+        var valueline = d3.line()
+        .x(function(d) { return x2(d.month); })
+        .y(function(d) { return y2(d.timesPlayed); });
+        
+        var lineChart = d3.select(".linechart")
+            .attr("width", width2 + margin2.left + margin2.right)
+            .attr("height", height2 + margin2.top + margin2.bottom)
+          .append("g")
+            .attr("transform",
+                  "translate(" + margin2.left + "," + margin2.top + ")");
+          
         console.log('Success');
-        $('#data').text(JSON.stringify(data));
-        loading_screen.finish();
-        },
 
+        var venueData = data.venueData;
+        $("#songName").text(song);
+        
+        //BarChart Start
+        y1.domain(venueData.map(function(d) { return capitalizeFirstLetter(d.venue); }));
+        x1.domain([0, d3.max(venueData, function(d) { 
+          /*if(+d.percentage*2>100){
+            return 100;
+          } else {
+            return +d.percentage*2;
+          } */ return +d.percentage;})]);
+        
+        barChart.append("g")
+          .attr("class", "yaxis")
+          .call(y1Axis);
+        
+        var bar = barChart.selectAll(".bar")
+          .data(venueData).enter().append("g");
+        
+        colorScale(-4);
+        colorScale(-3);
+        colorScale(-2);
+        colorScale(-1);
+        
+        
+        
+        console.log(y1.bandwidth());
+        bar.append("rect")
+            .attr("y", function(d) { return y1(capitalizeFirstLetter(d.venue)); })
+            .attr("fill", function(d, i) {return colorScale(i); })
+            .transition()
+            .delay(1000)
+            .duration(300)
+            .ease(d3.easeCubic)
+            .attr("class", "bar")
+            .attr("x", 0)
+            .attr("width", function(d) { return x1(+d.percentage); })
+            .attr("height", y1.bandwidth());
+
+        bar.append("text")
+            .transition()
+            .delay(1000)
+            .duration(300)
+            .ease(d3.easeCubic)
+            .attr("x", function(d) { 
+              console.log(x1(+d.percentage));
+              if(x1(+d.percentage) > 0){
+                return x1(+d.percentage) - 3;
+              } else {
+                return 20;
+              }
+                })
+            .attr("y", function(d) { return y1(capitalizeFirstLetter(d.venue)) +(y1.bandwidth()/2);})
+            .attr("dy", ".35em")
+            .text(function(d) { return Math.round(+d.percentage) + "%"; });
+            
+            
+        barChart.append("text")
+          .attr("x", ((width1 + margin1.left + margin1.right) / 2))             
+          .attr("y", 0 - (margin1.top / 2))
+          .attr("text-anchor", "middle")  
+          .style("font-size", "16px")
+          .style("fill","black") 
+          .style("text-decoration", "underline")  
+          .text("Frequency Played By Venue Type");
+          
+        //BarChart end
+        //LineChart Start
+        var monthData = data.monthData;
+        
+        // format the data
+        monthData.forEach(function(d) {
+            d.month = parseTime(d.month);
+            d.timesPlayed = +d.timesPlayed;
+        });
+        
+        // Scale the range of the data
+        x2.domain(d3.extent(monthData, function(d) { return d.month; }));
+        y2.domain([0, d3.max(monthData, function(d) { return d.timesPlayed; })]);
+
+        // Add the valueline path.
+        var path = lineChart.append("path")
+            .data([monthData].reverse())
+            .attr("class", "line")
+            .attr("d", valueline);
+            
+        var totalLength = path.node().getTotalLength();
+            
+        path
+        .attr("stroke-dasharray", totalLength + " " + totalLength)
+        .attr("stroke-dashoffset", totalLength)
+        .transition()
+          .delay(1000)
+          .duration(2000)
+          .ease(d3.easeLinear)
+          .attr("stroke-dasharray",  totalLength + " " + 0);
+
+        // Add the X Axis
+        lineChart.append("g")
+            .attr("transform", "translate(0," + height2 + ")")
+            .call(d3.axisBottom(x2));
+            
+        var max = d3.max(monthData, function(d) { return d.timesPlayed; });
+        var ticks = y2.ticks(max/2);
+        ticks.push(max);
+        console.log(ticks);
+        
+        // Add the Y Axis
+        lineChart.append("g")
+            .call(d3.axisLeft(y2).tickValues(ticks).tickFormat(d3.format(",d")));
+
+        
+        lineChart.append("text")
+          .attr("x", ((width2 + margin2.left + margin2.right) / 2))             
+          .attr("y", 0 - (margin2.top / 2))
+          .attr("text-anchor", "middle")  
+          .style("font-size", "16px")
+          .style("fill","black") 
+          .style("text-decoration", "underline")  
+          .text("Number Of Times Played Monthly");
+        
+        },
+        
         complete: function () {
         console.log('Finished all tasks');
+        loading_screen.finish();
         }
       });
-    
-  script.
-    // Setup svg using Bostock's margin convention
-    var loading_screen = pleaseWait({
-    logo: "/images/avett-bros-logo.png",
-      backgroundColor: '#f46d3b',
-      loadingHtml: '<p style="color:white">Rearranging plans...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
-    });
-
-    var margin = {top: 20, right: 30, bottom: 30, left: 100},
-        width = 600 - margin.left - margin.right,
-        height = 200 - margin.top - margin.bottom;
-    
-    var y = d3.scaleBand()
-        .rangeRound([0, height])
-        .paddingInner(0.1);
-
-    var x = d3.scaleLinear()
-        .range([0, width]);
-        
-    var yAxis = d3.axisLeft(y);
-
-    var chart = d3.select(".chart")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-    var colorScale = d3.scaleOrdinal(d3.schemeCategory20c);
-    
-    $.ajax({ 
-      type: "GET",
-      dataType: "json",
-      url: "/statistics",
-      data: {song:song, fromYear: "2013"},
-      error: function (jqXHR, textStatus, errorThrown) {
-      console.log(jqXHR);
-      console.log(textStatus);
-      console.log(errorThrown);
-      },
-      
-      success: function (data) {
-      console.log('Success');
-
-      var venueData = data.venueData;
-      $("#songName").text(song);
-      
-      y.domain(venueData.map(function(d) { return capitalizeFirstLetter(d.venue); }));
-      x.domain([0, d3.max(venueData, function(d) { 
-        /*if(+d.percentage*2>100){
-          return 100;
-        } else {
-          return +d.percentage*2;
-        } */ return +d.percentage;})]);
-      
-      chart.append("g")
-        .attr("class", "yaxis")
-        .call(yAxis);
-      
-      var bar = chart.selectAll(".bar")
-        .data(venueData).enter().append("g");
-      
-      colorScale(-4);
-      colorScale(-3);
-      colorScale(-2);
-      colorScale(-1);
-      
-      
-      
-      console.log(y.bandwidth());
-      bar.append("rect")
-          .attr("y", function(d) { return y(capitalizeFirstLetter(d.venue)); })
-          .attr("fill", function(d, i) {return colorScale(i); })
-          .transition()
-          .delay(1000)
-          .duration(300)
-          .ease(d3.easeCubic)
-          .attr("class", "bar")
-          .attr("x", 0)
-          .attr("width", function(d) { return x(+d.percentage); })
-          .attr("height", y.bandwidth());
-
-      bar.append("text")
-          .transition()
-          .delay(1000)
-          .duration(300)
-          .ease(d3.easeCubic)
-          .attr("x", function(d) { 
-            console.log(x(+d.percentage));
-            if(x(+d.percentage) > 0){
-              return x(+d.percentage) - 3;
-            } else {
-              return 20;
-            }
-              })
-          .attr("y", function(d) { return y(capitalizeFirstLetter(d.venue)) +(y.bandwidth()/2);})
-          .attr("dy", ".35em")
-          .text(function(d) { return Math.round(+d.percentage) + "%"; });
-      },
-    
-      complete: function () {
-      console.log('Finished all tasks');
-      loading_screen.finish();
-      }
     });
     
     function capitalizeFirstLetter(string) {

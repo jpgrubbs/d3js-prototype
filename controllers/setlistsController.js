@@ -51,7 +51,7 @@ exports.get_artist_setlists = function(req,res,next){
   }, function(err){
     if(err){console.log(err);}
     //console.log(JSON.stringify(setlists));
-    client.set(artistId, JSON.stringify(setlists,undefined,2));
+    client.set(artistId, JSON.stringify(setlists,undefined,2), 'EX', 86400);
     res.send(setlists)});
 
 }
