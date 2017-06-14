@@ -6,7 +6,45 @@ if(process.env.NODE_ENV === 'production'){
 
 var totAmphitheatre, totTheatre, totFestival, totArena, occurrences, numAmphitheatre, numTheatre, numFestival, numArena;
 
-
+exports.get_songs = function(req,res){
+  var allSongs = [];
+  request.get(`${apiString}/artist`).query({id: "0a176d0a-ef46-4e7f-b018-9f4d65614668"}).end(
+    function(err,result){
+      var setlists = result.body.setlists;
+      for(var i in setlists){
+        var sets = setlists[i].sets.set;
+        if(!sets){continue;}
+        if(sets.constructor === Array){
+          for(var j in sets){
+            var songs = sets[j].song;
+            if(songs.constructor === Array){
+              for(var k in songs){
+                var song = songs[k];
+                var name = song['@name'];
+                if(!allSongs.includes(name)){allSongs.push(name);}
+              }
+            } else {
+              var name = songs['@name'];
+              if(!allSongs.includes(name)){allSongs.push(name);}
+            }
+          }
+        } else {
+          var songs = sets.song;
+          if(songs.constructor === Array){
+            for(var k in songs){
+              var song = songs[k];
+              var name = song['@name'];
+              if(!allSongs.includes(name)){allSongs.push(name);}
+            }
+          } else {
+            var name = songs['@name'];
+            if(!allSongs.includes(name)){allSongs.push(name);}
+          }
+        }
+      }
+      res.send(allSongs.sort());
+    });
+}
 
 exports.get_statistics = function(req,res){
   totAmphitheatre = totTheatre = totFestival = totArena = occurrences = numAmphitheatre = numTheatre = numFestival = numArena = 0;

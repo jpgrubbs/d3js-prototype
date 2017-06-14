@@ -36,14 +36,18 @@ block content
     left:0;
     margin-right:4px;
     }
+    
+    #yearPicker {
+      width:80px;
+    }
   
   form
     label
       span Enter a song title:
-      input(type="text",name="songTitle", id="songTitle")
+      select(class="js-example-data-array", id="songPicker")
     label
-      span From this year forward:
-      select(id="yearpicker")
+      span From this year forward:  
+      select(class="js-example-data-array", id="yearPicker")
     input(type="submit",name="submit")
   h1(id="songName")
   svg(class="barchart")
@@ -55,13 +59,44 @@ block content
     |on the name. (For example: Arena looks for "arena", "coliseum", and "bowl" as keywords)
   p Song names must be accurate with correct punctuation but are not case sensitive. Ex. "Head Full Of Doubt/Road Full Of Promise"
   script.
+    var years = [];
     for (i = new Date().getFullYear(); i > 2001; i--)
     {
-      $('#yearpicker').append($('<option />').val(i).html(i));
+      years.push(i);
     }
+    $("#yearPicker").select2({
+      data:years
+    })
   
   script.
+    var loading_screen = pleaseWait({
+    logo: "/images/avett-bros-logo.png",
+      backgroundColor: '#f46d3b',
+      loadingHtml: '<p style="color:white">Rearranging plans and changing for you...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
+    });
     
+    $.ajax({
+      type: "GET",
+      dataType:"json",
+      url: "/statistics/songs",
+      error: function (jqXHR, textStatus, errorThrown) {
+      console.log(jqXHR);
+      console.log(textStatus);
+      console.log(errorThrown);
+      },
+      
+      success: function (data) {
+        console.log(data);
+        $("#songPicker").select2({
+          data: data
+        });
+      },
+      
+      complete: function () {
+      console.log('Finished all tasks');
+      loading_screen.finish();
+      }
+    });
               
     $("form").submit(function(e){
        e.preventDefault();
@@ -71,8 +106,8 @@ block content
          loadingHtml: '<p style="color:white">Rearranging plans and changing for you...</p><div class="sk-wave"><div class="sk-rect sk-rect1"></div><div class="sk-rect sk-rect2"></div><div class="sk-rect sk-rect3"></div><div class="sk-rect sk-rect4"></div><div class="sk-rect sk-rect5"></div></div>'
        });
       $("svg").empty();
-      var song = $("#songTitle").val();
-      var selectedYear = $("#yearpicker").val();
+      var song = $("#songPicker").val();
+      var selectedYear = $("#yearPicker").val();
       $.ajax({ 
         type: "GET",
         dataType: "json",
